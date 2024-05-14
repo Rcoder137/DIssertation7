@@ -88,24 +88,14 @@ def load_datasets(base_dir, batch_size):
 
 
 def main():
-
-    # Register hook
-    activations = {}
-    def get_activation(name):
-        """A function to create a forward hook function to capture activations."""
-        def hook(model, input, output):
-            activations[name] = output.detach()
-        return hook
-        
+       
     train_loader, val_loader = load_datasets(base_dir, batch_size)
     # Load a pre-trained ResNet18 model
     weights = ResNet18_Weights.DEFAULT                       # Use DEFAULT for the most up-to-date weights
     model = resnet18(weights=weights)
     num_classes = 2                                          # We have 2 classes (Bacterial Spot and Healthy) for the Bell Pepper 
     model.fc = nn.Linear(model.fc.in_features, num_classes)  # Modify the final fully connected layer of the model to match the number of classes
-        
-    model.layer4.register_forward_hook(get_activation('layer4'))
-    
+      
     # Freeze all layers except the final layer
     for param in model.parameters():
         param.requires_grad = False
@@ -144,7 +134,6 @@ def main():
             images, labels = images.to(device), labels.to(device)
             optimizer.zero_grad()
             outputs = model(images)
-            features = activations['layer4']
             loss = trades_loss(model, images, labels, optimizer, device, step_size, epsilon, perturb_steps, beta)
             loss.backward()
             optimizer.step()
